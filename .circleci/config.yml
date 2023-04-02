@@ -1,0 +1,69 @@
+version: 2.1
+
+jobs:
+  plan:
+    docker:
+      - image: docker.mirror.hashicorp.services/hashicorp/terraform:light
+    steps:
+      - checkout
+      - run:
+          name: terraform plan
+          command: |
+            terraform init -input=false
+            terraform plan -out tfapply
+
+  apply:
+    docker:
+      - image: docker.mirror.hashicorp.services/hashicorp/terraform:light
+    steps:
+      - checkout
+      - run:
+          name: terraform apply
+          command: |
+            terraform init -input=false
+            terraform plan -out tfapply
+            terraform apply -auto-approve tfapply
+
+
+  plan-destroy:
+    docker:
+      - image: docker.mirror.hashicorp.services/hashicorp/terraform:light
+    steps:
+      - checkout
+      - run:
+          name: terraform destroy plan
+          command: |
+            terraform init -input=false
+            terraform plan -destroy -out tfdestroy
+
+  destroy:
+    docker:
+      - image: docker.mirror.hashicorp.services/hashicorp/terraform:light
+    steps:
+      - checkout
+      - run:
+          name: terraform destroy
+          command: |
+            terraform init -input=false
+            terraform plan -destroy -out tfdestroy
+            terraform apply -auto-approve tfdestroy
+
+workflows:
+  plan_approve_apply:
+    jobs:
+      - plan
+      - apply_approval:
+          type: approval
+          requires:
+            - plan
+      - apply:
+          requires:
+            - apply_approval
+      # - plan-destroy
+      # - destroy_approval:
+      #     type: approval
+      #     requires:
+      #       - plan-destroy
+      # - destroy:
+      #     requires:
+      #       - destroy_approval
